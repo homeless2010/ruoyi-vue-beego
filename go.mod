@@ -1,10 +1,13 @@
 module ruoyi-vue-beego
 
-go 1.20
+go 1.19
 
 require github.com/beego/beego/v2 v2.0.1
 
-require github.com/smartystreets/goconvey v1.6.4
+require (
+	github.com/go-sql-driver/mysql v1.5.0
+	github.com/smartystreets/goconvey v1.6.4
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
