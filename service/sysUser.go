@@ -6,30 +6,41 @@ import (
 	"ruoyi-vue-beego/models/system"
 )
 
-var service *userService
+var userServiceImpl *userService
 
 type userService struct{}
 
 func init() {
-	service = &userService{}
+	userServiceImpl = &userService{}
 }
 
 func GetUserService() *userService {
-	return service
+	return userServiceImpl
 }
 
 func (userService *userService) Login(username string, password string) (token string, err error) {
 	user, err := userService.LoadUserByUsername(username)
 	fmt.Println(user)
-	return "jwt", err
+	t, err := GetTokenService().createToken(user)
+	return t, err
 }
 
-func (userService *userService) LoadUserByUsername(username string) (sysUser *system.SysUser, err error) {
+func (userService *userService) LoadUserByUsername(username string) (sysUser system.LoginUser, err error) {
 	o := orm.NewOrm()
 	user := system.SysUser{UserName: username}
-	err = o.Read(&user)
+	err = o.Read(user)
 	if err != nil {
-		return nil, err
+		return system.LoginUser{}, err
 	}
-	return &user, err
+	loginUser := createLoginUser(user)
+	return loginUser, err
+}
+
+func createLoginUser(user system.SysUser) system.LoginUser {
+	//TODO permissions
+	loginUser := system.LoginUser{
+		UserId:  user.UserId,
+		DeptId:  user.DeptId,
+		SysUser: user}
+	return loginUser
 }
