@@ -102,6 +102,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"ruoyi-vue-beego/common/util"
 	"sync"
 	"sync/atomic"
 )
@@ -155,7 +156,7 @@ func init() {
 //** PUBLIC FUNCTIONS
 
 // New creates a new JobPool.
-func New(numberOfRoutines int, queueCapacity int32) (jobPool *JobPool) {
+func NewJobPool(numberOfRoutines int, queueCapacity int32) (jobPool *JobPool) {
 	// Create the job queue.
 	jobPool = &JobPool{
 		priorityJobQueue:     list.New(),
@@ -191,8 +192,8 @@ func New(numberOfRoutines int, queueCapacity int32) (jobPool *JobPool) {
 func (jobPool *JobPool) Shutdown(goRoutine string) (err error) {
 	defer catchPanic(&err, goRoutine, "Shutdown")
 
-	writeStdout(goRoutine, "Shutdown", "Started")
-	writeStdout(goRoutine, "Shutdown", "Queue Routine")
+	util.WriteStdout(goRoutine, "Shutdown", "Started")
+	util.WriteStdout(goRoutine, "Shutdown", "Queue Routine")
 
 	jobPool.shutdownQueueChannel <- "Shutdown"
 	<-jobPool.shutdownQueueChannel
@@ -201,7 +202,7 @@ func (jobPool *JobPool) Shutdown(goRoutine string) (err error) {
 	close(jobPool.queueChannel)
 	close(jobPool.dequeueChannel)
 
-	writeStdout(goRoutine, "Shutdown", "Shutting Down Job Routines")
+	util.WriteStdout(goRoutine, "Shutdown", "Shutting Down Job Routines")
 
 	// Close the channel to shut things down
 	close(jobPool.shutdownJobChannel)
@@ -209,7 +210,7 @@ func (jobPool *JobPool) Shutdown(goRoutine string) (err error) {
 
 	close(jobPool.jobChannel)
 
-	writeStdout(goRoutine, "Shutdown", "Completed")
+	util.WriteStdout(goRoutine, "Shutdown", "Completed")
 	return err
 }
 
@@ -254,22 +255,12 @@ func catchPanic(err *error, goRoutine string, functionName string) {
 		buf := make([]byte, 10000)
 		runtime.Stack(buf, false)
 
-		writeStdoutf(goRoutine, functionName, "PANIC Defered [%v] : Stack Trace : %v", r, string(buf))
+		util.WriteStdoutf(goRoutine, functionName, "PANIC Defered [%v] : Stack Trace : %v", r, string(buf))
 
 		if err != nil {
 			*err = fmt.Errorf("%v", r)
 		}
 	}
-}
-
-// writeStdout is used to write a system message directly to stdout.
-func writeStdout(goRoutine string, functionName string, message string) {
-	log.Printf("%s : %s : %s\n", goRoutine, functionName, message)
-}
-
-// writeStdoutf is used to write a formatted system message directly stdout.
-func writeStdoutf(goRoutine string, functionName string, format string, a ...interface{}) {
-	writeStdout(goRoutine, functionName, fmt.Sprintf(format, a...))
 }
 
 //** PRIVATE MEMBER FUNCTIONS
@@ -279,7 +270,7 @@ func (jobPool *JobPool) queueRoutine() {
 	for {
 		select {
 		case <-jobPool.shutdownQueueChannel:
-			writeStdout("Queue", "queueRoutine", "Going Down")
+			util.WriteStdout("Queue", "queueRoutine", "Going Down")
 			jobPool.shutdownQueueChannel <- "Down"
 			return
 
@@ -352,7 +343,7 @@ func (jobPool *JobPool) jobRoutine(jobRoutine int) {
 		select {
 		// Shutdown the job routine.
 		case <-jobPool.shutdownJobChannel:
-			writeStdout(fmt.Sprintf("JobRoutine %d", jobRoutine), "jobRoutine", "Going Down")
+			util.WriteStdout(fmt.Sprintf("JobRoutine %d", jobRoutine), "jobRoutine", "Going Down")
 			jobPool.shutdownWaitGroup.Done()
 			return
 
@@ -393,7 +384,7 @@ func (jobPool *JobPool) doJobSafely(jobRoutine int) {
 	// Dequeue a job
 	queueJob, err := jobPool.dequeueJob()
 	if err != nil {
-		writeStdoutf("Queue", "jobpool.JobPool", "doJobSafely", "ERROR : %s", err)
+		util.WriteStdoutf("Queue", "jobpool.JobPool", "doJobSafely", "ERROR : %s", err)
 		return
 	}
 

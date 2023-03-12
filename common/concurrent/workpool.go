@@ -120,7 +120,7 @@ package concurrent
 import (
 	"fmt"
 	"log"
-	"runtime"
+	"ruoyi-vue-beego/common/util"
 	"sync"
 	"sync/atomic"
 )
@@ -165,7 +165,7 @@ func init() {
 }
 
 // New creates a new WorkPool.
-func New(numberOfRoutines int, queueCapacity int32) *WorkPool {
+func NewWorkPool(numberOfRoutines int, queueCapacity int32) *WorkPool {
 	workPool := WorkPool{
 		shutdownQueueChannel: make(chan string),
 		shutdownWorkChannel:  make(chan struct{}),
@@ -194,8 +194,8 @@ func New(numberOfRoutines int, queueCapacity int32) *WorkPool {
 func (workPool *WorkPool) Shutdown(goRoutine string) (err error) {
 	defer catchPanic(&err, goRoutine, "Shutdown")
 
-	writeStdout(goRoutine, "Shutdown", "Started")
-	writeStdout(goRoutine, "Shutdown", "Queue Routine")
+	util.WriteStdout(goRoutine, "Shutdown", "Started")
+	util.WriteStdout(goRoutine, "Shutdown", "Queue Routine")
 
 	workPool.shutdownQueueChannel <- "Down"
 	<-workPool.shutdownQueueChannel
@@ -203,7 +203,7 @@ func (workPool *WorkPool) Shutdown(goRoutine string) (err error) {
 	close(workPool.queueChannel)
 	close(workPool.shutdownQueueChannel)
 
-	writeStdout(goRoutine, "Shutdown", "Shutting Down Work Routines")
+	util.WriteStdout(goRoutine, "Shutdown", "Shutting Down Work Routines")
 
 	// Close the channel to shut things down.
 	close(workPool.shutdownWorkChannel)
@@ -211,7 +211,7 @@ func (workPool *WorkPool) Shutdown(goRoutine string) (err error) {
 
 	close(workPool.workChannel)
 
-	writeStdout(goRoutine, "Shutdown", "Completed")
+	util.WriteStdout(goRoutine, "Shutdown", "Completed")
 	return err
 }
 
@@ -241,29 +241,19 @@ func (workPool *WorkPool) ActiveRoutines() int32 {
 }
 
 // CatchPanic is used to catch any Panic and log exceptions to Stdout. It will also write the stack trace.
-func catchPanic(err *error, goRoutine string, functionName string) {
-	if r := recover(); r != nil {
-		// Capture the stack trace
-		buf := make([]byte, 10000)
-		runtime.Stack(buf, false)
-
-		writeStdoutf(goRoutine, functionName, "PANIC Defered [%v] : Stack Trace : %v", r, string(buf))
-
-		if err != nil {
-			*err = fmt.Errorf("%v", r)
-		}
-	}
-}
-
-// writeStdout is used to write a system message directly to stdout.
-func writeStdout(goRoutine string, functionName string, message string) {
-	log.Printf("%s : %s : %s\n", goRoutine, functionName, message)
-}
-
-// writeStdoutf is used to write a formatted system message directly stdout.
-func writeStdoutf(goRoutine string, functionName string, format string, a ...interface{}) {
-	writeStdout(goRoutine, functionName, fmt.Sprintf(format, a...))
-}
+//func catchPanic(err *error, goRoutine string, functionName string) {
+//	if r := recover(); r != nil {
+//		// Capture the stack trace
+//		buf := make([]byte, 10000)
+//		runtime.Stack(buf, false)
+//
+//		util.WriteStdoutf(goRoutine, functionName, "PANIC Defered [%v] : Stack Trace : %v", r, string(buf))
+//
+//		if err != nil {
+//			*err = fmt.Errorf("%v", r)
+//		}
+//	}
+//}
 
 // workRoutine performs the work required by the work pool
 func (workPool *WorkPool) workRoutine(workRoutine int) {
@@ -271,7 +261,7 @@ func (workPool *WorkPool) workRoutine(workRoutine int) {
 		select {
 		// Shutdown the WorkRoutine.
 		case <-workPool.shutdownWorkChannel:
-			writeStdout(fmt.Sprintf("WorkRoutine %d", workRoutine), "workRoutine", "Going Down")
+			util.WriteStdout(fmt.Sprintf("WorkRoutine %d", workRoutine), "workRoutine", "Going Down")
 			workPool.shutdownWaitGroup.Done()
 			return
 
@@ -302,7 +292,7 @@ func (workPool *WorkPool) queueRoutine() {
 		select {
 		// Shutdown the QueueRoutine.
 		case <-workPool.shutdownQueueChannel:
-			writeStdout("Queue", "queueRoutine", "Going Down")
+			util.WriteStdout("Queue", "queueRoutine", "Going Down")
 			workPool.shutdownQueueChannel <- "Down"
 			return
 
