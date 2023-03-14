@@ -384,7 +384,7 @@ func (jobPool *JobPool) doJobSafely(jobRoutine int) {
 	// Dequeue a job
 	queueJob, err := jobPool.dequeueJob()
 	if err != nil {
-		util.WriteStdoutf("Queue", "jobpool.JobPool", "doJobSafely", "ERROR : %s", err)
+		util.WriteStdoutf("jobRoutine", "doJobSafely", "ERROR : %s", err)
 		return
 	}
 
